@@ -1,0 +1,30 @@
+---
+- name: Practise structured failure handling
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Demonstrate failure and recovery
+      block:
+        - name: Begin the exercise
+          ansible.builtin.debug:
+            msg: "Starting the main tasks."
+
+        - name: Trigger a deliberate failure
+          ansible.builtin.fail:
+            msg: "Intentional lab failure."
+
+      rescue:
+        - name: Respond to the failure
+          ansible.builtin.debug:
+            msg: "Rescue ran because a task in the block failed."
+
+        - name: Keep the overall job marked as failed
+          ansible.builtin.fail:
+            msg: "Recovery steps finished, but the original operation failed."
+
+      always:
+        - name: Perform the final step
+          ansible.builtin.debug:
+            msg: "Always runs after the block and any rescue tasks."
