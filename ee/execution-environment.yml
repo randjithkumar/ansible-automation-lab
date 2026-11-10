@@ -1,0 +1,23 @@
+---
+version: 3
+
+images:
+  base_image:
+    name: registry.fedoraproject.org/fedora:43
+
+dependencies:
+  python_interpreter:
+    package_system: python3
+    python_path: /usr/bin/python3
+
+  ansible_core:
+    package_pip: ansible-core==2.20.1
+
+  ansible_runner:
+    package_pip: ansible-runner
+
+  system:
+    - openssh-clients
+
+options:
+  package_manager_path: /usr/bin/dnf5

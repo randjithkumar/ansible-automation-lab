@@ -1,0 +1,33 @@
+---
+- name: Restore the known-good application configuration
+  hosts: managed
+  gather_facts: false
+
+  tasks:
+    - name: Restore configuration saved for port 9090
+      become: true
+      ansible.builtin.copy:
+        src: /opt/ansible-demo/application-9090.known-good.yml
+        dest: /opt/ansible-demo/application.yml
+        remote_src: true
+        owner: root
+        group: ansible_demo
+        mode: "0644"
+
+    - name: Restart the application using restored configuration
+      become: true
+      ansible.builtin.systemd_service:
+        name: ansible-demo
+        state: restarted
+
+    - name: Verify recovery on port 9090
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9090/actuator/health
+        status_code: 200
+        return_content: true
+      register: recovery_health
+      until:
+        - recovery_health.status | default(0) == 200
+        - (recovery_health.json | default({})).get('status', '') == 'UP'
+      retries: 12
+      delay: 5

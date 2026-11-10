@@ -1,0 +1,25 @@
+---
+- name: Ensure cron is installed
+  become: true
+  ansible.builtin.apt:
+    name: cron
+    state: present
+
+- name: Ensure cron is running and starts at boot
+  become: true
+  ansible.builtin.systemd_service:
+    name: cron
+    state: started
+    enabled: true
+
+- name: Gather service information
+  ansible.builtin.service_facts:
+
+- name: Verify cron is active
+  ansible.builtin.assert:
+    that:
+      - "'cron.service' in ansible_facts.services"
+      - ansible_facts.services['cron.service'].state == 'running'
+    fail_msg: "Cron is not running. Inspect its service status and logs."
+    success_msg: "Cron is running on the managed server."
+  when: not ansible_check_mode

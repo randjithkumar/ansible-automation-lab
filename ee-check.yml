@@ -1,0 +1,12 @@
+---
+- name: Verify the execution environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Show the container automation runtime
+      ansible.builtin.debug:
+        msg: >-
+          Ansible {{ ansible_version.full }}
+          is running with Python at {{ ansible_playbook_python }}

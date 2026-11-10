@@ -1,0 +1,6 @@
+---
+app_name: "ansible-demo"
+app_port: 9091
+app_version: "1.0.0"
+app_artifact_url: "http://192.168.56.102:8000/{{ app_version }}/ansible-demo.jar"
+app_artifact_sha256: "982ab32f82ccd1eca70814b95c3e106c90f0b17c8fdafdd1b739389afdcca84f"

@@ -1,0 +1,65 @@
+---
+- name: My first Ansible exercise
+  hosts: lab
+  connection: local
+  gather_facts: true
+  vars:
+     greeting: "Hello from my Ansible lab!"
+     file_name: "hello.txt"
+     app_name: "ansible-demo"
+     app_port: 9093
+     show_config_message: false
+  tasks:
+    - name: Validate the application port
+      ansible.builtin.assert:
+        that:
+          - app_port is integer
+          - app_port >= 1
+          - app_port <= 65535
+        fail_msg: "app_port must be an integer between 1 and 65535."
+        success_msg: "Application port is valid."
+ 
+    - name: Make sure the practice folder exists
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/practice"
+        state: directory
+        mode: "0755"
+
+    - name: Make sure the greeting file exists
+      ansible.builtin.copy:
+        dest: "{{ playbook_dir }}/practice/{{ file_name }}"
+        content: "{{ greeting }}\n"
+        mode: "0644"
+
+    - name: Generate application configuration
+      ansible.builtin.template:
+        src: templates/application.yml.j2
+        dest: "{{ playbook_dir }}/practice/application.yml"
+        mode: "0644"
+      notify: Report configuration change
+
+    - name: Show the configured application port
+      ansible.builtin.debug:
+        msg: "Application configuration uses port {{ app_port }}"
+      when: show_config_message
+
+    - name: Create application folders
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/practice/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: 
+        - logs
+        - config
+        - backups
+
+    - name: Show operating system information
+      ansible.builtin.debug:
+        msg: >-
+          This machine runs {{ ansible_facts['distribution'] }}
+          {{ ansible_facts['distribution_version'] }}
+
+  handlers:
+    - name: Report configuration change
+      ansible.builtin.debug:
+        msg: "Configuraion changed. A real deployment could restart the application here."

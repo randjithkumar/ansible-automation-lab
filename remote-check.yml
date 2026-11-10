@@ -1,0 +1,164 @@
+---
+- name: Verify the managed server
+  hosts: managed
+  gather_facts: true
+
+  tasks:
+
+    - name: Validate application port before making changes
+      ansible.builtin.assert:
+        that:
+          - app_port is integer
+          - app_port >= 1
+          - app_port <= 65535
+        fail_msg: "app_port must be an integer between 1 and 65535."
+
+    - name: Show which server Ansible reached
+      ansible.builtin.debug:
+        msg: >-
+          Connected to {{ inventory_hostname }}
+          at {{ ansible_host }},
+          running {{ ansible_facts['distribution'] }}
+          {{ ansible_facts['distribution_version'] }}
+
+    - name: Create a remote practice directory
+      ansible.builtin.file:
+        path: /home/rand/ansible-remote-lab
+        state: directory
+        mode: "0755"
+
+    - name: Ensure curl is installed
+      become: true
+      ansible.builtin.apt:
+        name: curl
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Ensure the application group exists
+      become: true
+      ansible.builtin.group:
+        name: ansible_demo
+        system: true
+        state: present
+
+    - name: Ensure the application account exists
+      become: true
+      ansible.builtin.user:
+        name: ansible_demo
+        group: ansible_demo
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+        state: present
+
+    - name: Create a system application directory
+      become: true
+      ansible.builtin.file:
+        path: /opt/ansible-demo
+        state: directory
+        owner: ansible_demo
+        group: ansible_demo
+        mode: "0755"
+
+    - name: Configure and verify cron
+      ansible.builtin.import_role:
+        name: cron_service
+
+
+    - name: Ensure Java 21 runtime is installed
+      become: true
+      ansible.builtin.apt:
+        name: openjdk-21-jre-headless
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Download and verify the application artifact
+      become: true
+      ansible.builtin.get_url:
+        url: "{{ app_artifact_url }}"
+        dest: /opt/ansible-demo/app.jar
+        checksum: "sha256:{{ app_artifact_sha256 }}"
+        owner: root
+        group: ansible_demo
+        mode: "0644"
+        timeout: 30
+      notify: Restart demo application
+
+    - name: Deploy application configuration
+      become: true
+      ansible.builtin.template:
+        src: templates/deployed-application.yml.j2
+        dest: /opt/ansible-demo/application.yml
+        owner: root
+        group: ansible_demo
+        mode: "0644"
+      notify: Restart demo application
+
+    - name: Install the application service definition
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/ansible-demo.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Ansible demo Spring Boot application - lab revision 3
+          After=network.target
+
+          [Service]
+          User=ansible_demo
+          Group=ansible_demo
+          WorkingDirectory=/opt/ansible-demo
+          ExecStart=/usr/bin/java -jar /opt/ansible-demo/app.jar --spring.config.location=file:/opt/ansible-demo/application.yml
+          Restart=on-failure
+          RestartSec=5
+          SuccessExitStatus=143
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart demo application
+
+
+    - name: Ensure the application is running and enabled
+      become: true
+      ansible.builtin.systemd_service:
+        name: ansible-demo
+        daemon_reload: true
+        state: started
+        enabled: true
+
+    - name: Run pending handlers before checking application health
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for application health to be UP
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/actuator/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: app_health
+      until:
+        - app_health.status | default(0) == 200
+        - (app_health.json | default({})).get('status', '') == 'UP'
+      retries: 12
+      delay: 5
+
+ #  - name: Deploy application configuration
+ #     become: true
+ #     ansible.builtin.template:
+ #       src: templates/deployed-application.yml.j2
+ #       dest: /opt/ansible-demo/application.yml
+ #       owner: root
+ #       group: ansible_demo
+ #     notify: Restart demo application
+
+  handlers:
+    - name: Restart demo application
+      become: true
+      ansible.builtin.systemd_service:
+        name: ansible-demo
+        daemon_reload: true
+        state: restarted

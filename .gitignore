@@ -1,0 +1,29 @@
+# Application build outputs and lab artifact server
+**/target/
+artifacts/
+*.jar
+*.zip
+
+# Generated execution-environment build files
+ee/context/
+
+# Tool caches and temporary files
+.ansible/
+.cache/
+__pycache__/
+*.retry
+*.log
+*.bak
+*~
+*.swp
+
+# Local credentials
+.ssh/
+.env
+.env.*
+.vault_pass*
+vault-password*
+
+# Generated lab files and backup
+practice/
+remote-check_bak.yml

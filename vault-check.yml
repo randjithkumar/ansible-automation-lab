@@ -1,0 +1,21 @@
+---
+- name: Verify encrypted variables
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - vault/demo.yml
+
+  tasks:
+    - name: Verify the dummy token was loaded
+      ansible.builtin.assert:
+        that:
+          - demo_api_token is defined
+          - demo_api_token is string
+          - demo_api_token | length > 0
+      no_log: true
+
+    - name: Confirm the Vault exercise passed
+      ansible.builtin.debug:
+        msg: "Encrypted variable loaded and validated successfully."
