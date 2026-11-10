@@ -145,6 +145,8 @@
         - (app_health.json | default({})).get('status', '') == 'UP'
       retries: 12
       delay: 5
+      tags:
+        - health
 
  #  - name: Deploy application configuration
  #     become: true
