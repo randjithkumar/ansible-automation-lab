@@ -1,0 +1,15 @@
+---
+- name: Verify hosted AAP access to EC2
+  hosts: all
+  gather_facts: false
+
+  vars:
+    ansible_connection: ssh
+    ansible_ssh_common_args: >-
+      -o UserKnownHostsFile={{ playbook_dir }}/files/ec2_known_hosts
+      -o StrictHostKeyChecking=yes
+      -o HostKeyAlgorithms=ssh-ed25519
+
+  tasks:
+    - name: Verify SSH authentication and remote Python
+      ansible.builtin.ping:
