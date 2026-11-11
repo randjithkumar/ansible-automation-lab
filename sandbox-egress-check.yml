@@ -1,0 +1,19 @@
+---
+- name: Identify the hosted job outbound address
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Read the public address observed by AWS
+      ansible.builtin.uri:
+        url: https://checkip.amazonaws.com
+        return_content: true
+        status_code: 200
+        timeout: 15
+      register: egress_result
+      changed_when: false
+
+    - name: Show the outbound public address
+      ansible.builtin.debug:
+        msg: "{{ egress_result.content | trim }}"
